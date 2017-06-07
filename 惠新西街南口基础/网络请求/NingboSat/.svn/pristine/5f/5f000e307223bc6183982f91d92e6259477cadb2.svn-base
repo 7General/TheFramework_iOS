@@ -1,0 +1,248 @@
+//
+//  MineViewController.m
+//  NingboSat
+//
+//  Created by 王会洲 on 16/9/6.
+//  Copyright © 2016年 王会洲. All rights reserved.
+//
+
+#import "MineViewController.h"
+#import "MineHeadView.h"
+#import "Config.h"
+#import "YSAlertView.h"
+
+#import "NSObject+UserInfoState.h"
+#import "YSNotificationManager.h"
+
+#import "MineMessageViewController.h"
+#import "AddressManageViewController.h"
+#import "AboutUsViewController.h"
+#import "LoginViewController.h"
+#import "YSWebController.h"
+#import "TaxSearchController.h"
+#import "MyBookViewController.h"
+
+@interface MineViewController ()<UITableViewDelegate,UITableViewDataSource,MineHeadViewDelegate>
+
+@property (nonatomic, strong)UITableView * tableView;
+@property (nonatomic, strong)NSArray * cellTitleArray;
+@property (nonatomic, strong)NSArray * cellIconArray;
+
+@property (nonatomic, strong) MineHeadView * mineHead;
+
+@end
+
+@implementation MineViewController
+
+
+-(void)viewDidAppear:(BOOL)animated{
+    [super viewDidAppear:animated];
+    [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleLightContent animated:YES];
+}
+-(void)viewWillDisappear:(BOOL)animated{
+    [super viewWillDisappear:animated];
+    [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleDefault animated:YES];
+    
+}
+
+-(void)initData{
+    [YSNotificationManager addUserLoginObserver:self selector:@selector(notificationRefresh)];
+    [YSNotificationManager addUserLogoutObserver:self selector:@selector(notificationRefresh)];
+}
+
+-(void)initView{    
+    self.mineHead = [[MineHeadView alloc]initWithFrame:CGRectMake(0, 64, SCREEN_WIDTH, 220)];
+    self.mineHead.delegate = self;
+    
+    UITableView * tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, 0, CGRectGetWidth(self.view.bounds), CGRectGetHeight(self.view.bounds) - 48) style:UITableViewStyleGrouped];
+    [self.view addSubview:tableView];
+    tableView.bounces = NO;
+    tableView.delegate = self;
+    tableView.dataSource = self;
+    tableView.showsVerticalScrollIndicator = NO;
+    tableView.tableHeaderView = self.mineHead;
+    tableView.separatorColor = YSColor(230, 230, 230);
+    
+    self.tableView = tableView;
+    [self.view addSubview:self.tableView];
+    
+
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.view.backgroundColor = [UIColor whiteColor];
+    
+    self.cellTitleArray = [NSArray arrayWithObjects:
+                           [NSArray arrayWithObjects:@"我的消息", @"我的预约", @"我的发票", nil],
+                           [NSArray arrayWithObjects:@"涉税信息", @"开票设置", nil],
+                           [NSArray arrayWithObjects:@"关于", nil],
+                           nil];
+    self.cellIconArray = [NSArray arrayWithObjects:
+                          [NSArray arrayWithObjects:@"messageIcon", @"orderIcon", @"invoiceIcon", nil],
+                          [NSArray arrayWithObjects:@"taxInfoIcon", @"invoiceSetIcon", nil],
+                          [NSArray arrayWithObjects:@"aboutUsIcon", nil],
+                          nil];
+    [self initData];
+    
+    [self initView];
+}
+-(void)notificationRefresh{
+    [self.tableView reloadData];
+}
+
+/**隐藏导航栏下的横线*/
+- (UIImageView *)findHairlineImageViewUnder:(UIView *)view {
+    if ([view isKindOfClass:UIImageView.class] && view.bounds.size.height <= 1.0) {
+        return (UIImageView *)view;
+    }
+    for (UIView *subview in view.subviews) {
+        UIImageView *imageView = [self findHairlineImageViewUnder:subview];
+        if (imageView) {
+            return imageView;
+        }
+    }
+    return nil;
+}
+#pragma mark - UITableViewDelegate, UITableViewDataSource
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    if (section < self.cellTitleArray.count) {
+        return [self.cellTitleArray[section] count];
+
+    }else{
+        return 1;
+    }
+    
+}
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return self.cellTitleArray.count + ([[self class] isLogin] ? 1 : 0);
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    NSString * normalIdentity = @"normalCell";
+    UITableViewCell * cell = [tableView dequeueReusableCellWithIdentifier:normalIdentity];
+    if (!cell) {
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:normalIdentity];
+        cell.selectionStyle = UITableViewCellSelectionStyleNone;
+        
+        UIImageView * arrowView = [[UIImageView alloc] init];
+        arrowView.image = [UIImage imageNamed:@"mineArrowGray"];
+        [arrowView sizeToFit];
+        cell.accessoryView = arrowView;
+        
+        cell.textLabel.font = FONT_BY_SCREEN(15);
+        cell.textLabel.textColor = YSColor(80, 80, 80);
+    }
+    if (indexPath.section < self.cellTitleArray.count) {
+        NSString *iconName = self.cellIconArray[indexPath.section][indexPath.row];
+        cell.imageView.image = [UIImage imageNamed:iconName];
+        cell.textLabel.text = self.cellTitleArray[indexPath.section][indexPath.row];
+    }else{
+        cell.accessoryView.hidden = YES;
+        cell.textLabel.text = @"退出登录";
+        cell.textLabel.textAlignment = NSTextAlignmentCenter;
+        cell.textLabel.textColor = YSColor(75, 196, 251);
+
+    }
+    
+    return cell;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 48;
+}
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return 10;
+}
+- (CGFloat)tableView:(UITableView *)tableView heightForFooterInSection:(NSInteger)section {
+    return 0.01;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    if (!(0 == indexPath.row && 2 == indexPath.section) && ![NSObject isLogin]) {
+        [self unReachable];
+        return;
+    }
+    if (indexPath.section < self.cellTitleArray.count) {
+        if (0 == indexPath.section) {
+            switch (indexPath.row) {
+                case 0: {
+                    YSWebController *vc = [[YSWebController alloc] init];
+                    vc.urlStr = MINE_MESSAGE_URL;
+                    [self.navigationController pushViewController:vc animated:YES];
+                    break;
+                }
+                case 1: {
+                    MyBookViewController *vc = [[MyBookViewController alloc] init];
+                    [self.navigationController pushViewController:vc animated:YES];
+                    break;
+                }
+                case 2: {
+                    YSWebController *vc = [[YSWebController alloc] init];
+                    vc.urlStr = MINE_INVOICE_URL;
+                    [self.navigationController pushViewController:vc animated:YES];
+                    break;
+                }
+                default:
+                    break;
+            }
+            return;
+        }
+        if (1 == indexPath.section) {
+            switch (indexPath.row) {
+                case 0: {
+                    TaxSearchController *vc = [[TaxSearchController alloc] init];
+                    [self.navigationController pushViewController:vc animated:YES];
+                    break;
+                }
+                case 1: {
+                    YSWebController *vc = [[YSWebController alloc] init];
+                    vc.urlStr = INVOICE_MAKEOUT_SET_URL;
+                    [self.navigationController pushViewController:vc animated:YES];
+                    break;
+                }
+                default:
+                    break;
+            }
+            return;
+        }
+        if (2 == indexPath.section) {
+            switch (indexPath.row) {
+                case 0:
+                    [self.navigationController pushViewController:[AboutUsViewController new] animated:YES];
+                    break;
+                default:
+                    break;
+            }
+            return;
+        }
+    }else{
+        [[self class] removeUserInfo];
+    }
+}
+
+#pragma mark - MineHeadViewDelegate
+-(void)loginButtonClicked:(UIButton *)sender{
+    if ([[self class] isLogin]) {
+        
+    }else{
+        [self presentViewController:[LoginViewController new] animated:YES completion:^{
+            
+        }];
+    }
+}
+
+#pragma mark - other methods
+- (void)unReachable {
+    YSAlertView *alertView = [YSAlertView alertWithTitle:nil message:@"该模块需要登录才能使用，是否立即登录？" buttonTitles:@"稍后", @"立即登录", nil];
+    [alertView show];
+    [alertView alertButtonClick:^(NSInteger buttonIndex) {
+        if (buttonIndex == 1) {
+            [self presentViewController:[LoginViewController new] animated:YES completion:^{
+                
+            }];
+        }
+    }];
+}
+
+@end

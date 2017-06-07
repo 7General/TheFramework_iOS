@@ -1,0 +1,77 @@
+//
+//  BookFootView.m
+//  NingboSat
+//
+//  Created by 王会洲 on 16/11/17.
+//  Copyright © 2016年 王会洲. All rights reserved.
+//
+
+#import "BookFootView.h"
+#import "Config.h"
+#import "Masonry.h"
+
+@interface BookFootView()
+
+
+
+@end
+
+@implementation BookFootView
+-(instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        [self initView];
+        /**接受改变UI广播*/
+        [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(changeSkine) name:@"SKINES" object:nil];
+    }
+    return self;
+}
+
+-(void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+-(void)changeSkine {
+    [self.needFile setTitleColor:YSColor(136, 136, 136) forState:UIControlStateNormal];
+    self.needFile.userInteractionEnabled = NO;
+    [self.bookItem setTitleColor:YSColor(136, 136, 136) forState:UIControlStateNormal];
+    self.bookItem.userInteractionEnabled = NO;
+}
+
+
+
+-(void)initView {
+    UIButton * needFile = [UIButton buttonWithType:UIButtonTypeCustom];
+    [needFile setTitle:@"查看办理所需资料>" forState:UIControlStateNormal];
+    needFile.titleLabel.font = FONT_BOLD_BY_SCREEN(13);
+    needFile.contentHorizontalAlignment=UIControlContentHorizontalAlignmentLeft ;
+    [needFile setTitleColor:YSColor(75, 196, 251) forState:UIControlStateNormal];
+    [self addSubview:needFile];
+   
+    [needFile mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.left.equalTo(self.mas_left).with.offset(15);
+        make.top.equalTo(self.mas_top).with.offset(15);
+        make.size.mas_equalTo(CGSizeMake(155 * KWidthScale, 13 * KHeightScale));
+    }];
+    self.needFile = needFile;
+    
+    
+    UIButton * bookItem = [UIButton buttonWithType:UIButtonTypeCustom];
+    [bookItem setTitle:@"查看可预约事项>" forState:UIControlStateNormal];
+    bookItem.titleLabel.font = FONT_BOLD_BY_SCREEN(13);
+    bookItem.contentHorizontalAlignment=UIControlContentHorizontalAlignmentLeft ;
+    [bookItem setTitleColor:YSColor(75, 196, 251) forState:UIControlStateNormal];
+    [self addSubview:bookItem];
+    
+    [bookItem mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.left.equalTo(self.mas_left).with.offset(15);
+        make.top.equalTo(self.needFile.mas_bottom).with.offset(15);
+        make.size.mas_equalTo(CGSizeMake(155 * KWidthScale, 13 * KHeightScale));
+    }];
+    self.bookItem = bookItem;
+}
+
+
+
+
+
+@end

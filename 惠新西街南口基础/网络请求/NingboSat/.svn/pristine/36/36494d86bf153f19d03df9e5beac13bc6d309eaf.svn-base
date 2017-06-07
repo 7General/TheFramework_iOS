@@ -1,0 +1,172 @@
+//
+//  BookSearchViewController.m
+//  NingboSat
+//
+//  Created by 王会洲 on 16/11/30.
+//  Copyright © 2016年 王会洲. All rights reserved.
+//
+
+#import "BookSearchViewController.h"
+#import "Config.h"
+#import "MSSCalendarViewController.h"
+#import "Masonry.h"
+#import "BookHistoryViewController.h"
+#import "NSString+AttributeOrSize.h"
+#import "NSDate+Helper.h"
+
+
+@interface BookSearchViewController ()<MSSCalendarViewControllerDelegate>
+
+/**区分两个选择时间*/
+@property (nonatomic, assign) BOOL  startSelect;
+@property (nonatomic, assign) BOOL  endSelect;
+
+/**起开始时间*/
+@property (nonatomic, weak) UIButton * qshjValue;
+/**终止时间*/
+@property (nonatomic, weak) UIButton * jshjValue;
+@end
+
+@implementation BookSearchViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self initView];
+    [self setButtonData];
+}
+/**给文本框赋值*/
+-(void)setButtonData {
+    NSString * jssj = [[NSDate date] stringFromDate:@"YYYY-MM-dd"];
+    [self.jshjValue setTitle:jssj forState:UIControlStateNormal];
+    // 获取当前月的第一天
+    NSString * monthFirst = [jssj getMonthBeginAndEndWith:@"yyyy-MM-dd"];
+    [self.qshjValue setTitle:monthFirst forState:UIControlStateNormal];
+}
+
+
+
+-(void)initView {
+    self.title = @"预约查询";
+    self.view.backgroundColor = YSColor(245, 245, 245);
+    UIView * consoleView = [[UIView alloc] initWithFrame:CGRectMake(0, 10, SCREEN_WIDTH, 150)];
+    consoleView.backgroundColor = YSColor(255, 255, 255);
+    [self.view addSubview:consoleView];
+    
+    UILabel * blsj = [[UILabel alloc] initWithFrame:CGRectMake(15, 0, 200, 50)];
+    blsj.text = @"办理时间";
+    blsj.textColor = YSColor(80, 80, 80);
+    blsj.font = FONTMedium(15);
+    [consoleView addSubview:blsj];
+    
+    UIView * lineOne = [[UIView alloc] initWithFrame:CGRectMake(0, 50, SCREEN_WIDTH, 1)];
+    lineOne.backgroundColor = YSColor(230, 230, 230);
+    [consoleView addSubview:lineOne];
+    
+    UILabel * qshj = [[UILabel alloc] initWithFrame:CGRectMake(15, 50, 80, 50)];
+    qshj.textColor = YSColor(180, 180, 180);
+    qshj.font = FONTLIGHT(15);
+    qshj.text = @"起始日期";
+    [consoleView addSubview:qshj];
+    
+    UIButton * qshjValue = [UIButton buttonWithType:UIButtonTypeCustom];
+    qshjValue.frame = CGRectMake(CGRectGetMaxX(qshj.frame), 50, 200, 50);
+    [qshjValue setTitleColor:YSColor(80, 80, 80) forState:UIControlStateNormal];
+    [qshjValue addTarget:self action:@selector(startClick) forControlEvents:UIControlEventTouchUpInside];
+    qshjValue.titleLabel.font = FONTLIGHT(15);
+    [consoleView addSubview:qshjValue];
+    self.qshjValue = qshjValue;
+    
+    UIView * lineTwo = [[UIView alloc] initWithFrame:CGRectMake(15, 100, SCREEN_WIDTH, 1)];
+    lineTwo.backgroundColor = YSColor(230, 230, 230);
+    [consoleView addSubview:lineTwo];
+    
+    
+    UILabel * jshj = [[UILabel alloc] initWithFrame:CGRectMake(15, 100, 80, 50)];
+    jshj.textColor = YSColor(180, 180, 180);
+    jshj.font = FONTLIGHT(15);
+    jshj.text = @"结束日期";
+    [consoleView addSubview:jshj];
+    
+    
+    UIButton * jshjValue = [UIButton buttonWithType:UIButtonTypeCustom];
+    jshjValue.frame = CGRectMake(CGRectGetMaxX(jshj.frame), 100, 200, 50);
+    [jshjValue setTitleColor:YSColor(80, 80, 80) forState:UIControlStateNormal];
+    jshjValue.titleLabel.font = FONTLIGHT(15);
+    [jshjValue addTarget:self action:@selector(endClick) forControlEvents:UIControlEventTouchUpInside];
+    [consoleView addSubview:jshjValue];
+    self.jshjValue = jshjValue;
+    
+    UIButton * SearchBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    [SearchBtn setTitle:@"查询" forState:UIControlStateNormal];
+    SearchBtn.backgroundColor = YSColor(75, 196, 251);
+    SearchBtn.layer.masksToBounds = YES;
+    SearchBtn.layer.cornerRadius = 8;
+    SearchBtn.titleLabel.font = FONTLIGHT(17);
+    [SearchBtn setTitleColor:YSColor(255, 255, 255) forState:UIControlStateNormal];
+    [SearchBtn addTarget:self action:@selector(searchClick) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:SearchBtn];
+    [SearchBtn mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.equalTo(consoleView.mas_bottom).with.offset(30);
+        make.left.equalTo(self.view.mas_left).with.offset(35);
+        make.right.equalTo(self.view.mas_right).with.offset(-35);
+        make.height.mas_offset(44);
+    }];
+}
+
+/**查询按钮*/
+-(void)searchClick {
+    BookHistoryViewController * bookHistory = [[BookHistoryViewController alloc] init];
+    bookHistory.startTime = [self.qshjValue.titleLabel.text stringTimeWithFormat];
+    bookHistory.endTime = [self.jshjValue.titleLabel.text stringTimeWithFormat];
+    [self.navigationController pushViewController:bookHistory animated:YES];
+}
+/**选择开始时间*/
+-(void)startClick {
+    MSSCalendarViewController *cvc = [[MSSCalendarViewController alloc]init];
+    cvc.limitMonth = 12 * 1;// 显示几个月的日历
+    cvc.type = MSSCalendarViewControllerLastType;
+    cvc.beforeTodayCanTouch = YES;// 今天之后的日期是否可以点击
+    cvc.afterTodayCanTouch = NO;// 今天之前的日期是否可以点击
+    cvc.showChineseHoliday = NO;// 是否展示农历节日
+    cvc.showChineseCalendar = NO;// 是否展示农历
+    cvc.showHolidayDifferentColor = NO;// 节假日是否显示不同的颜色
+    cvc.showAlertView = YES;// 是否显示提示弹窗
+    cvc.delegate = self;
+    [self.navigationController pushViewController:cvc animated:YES];
+    self.startSelect = YES;
+    self.endSelect = NO;
+}
+
+/**选择结束时间*/
+-(void)endClick {
+    MSSCalendarViewController *cvc = [[MSSCalendarViewController alloc]init];
+    cvc.limitMonth = 12 * 1;// 显示几个月的日历
+    cvc.type = MSSCalendarViewControllerLastType;
+    cvc.beforeTodayCanTouch = YES;// 今天之后的日期是否可以点击
+    cvc.afterTodayCanTouch = NO;// 今天之前的日期是否可以点击
+    cvc.showChineseHoliday = NO;// 是否展示农历节日
+    cvc.showChineseCalendar = NO;// 是否展示农历
+    cvc.showHolidayDifferentColor = NO;// 节假日是否显示不同的颜色
+    cvc.showAlertView = YES;// 是否显示提示弹窗
+    cvc.delegate = self;
+    cvc.isCompare = YES;
+    cvc.CompareTime = [self.qshjValue.titleLabel.text stringTimeWithFormat];
+    [self.navigationController pushViewController:cvc animated:YES];
+    self.endSelect = YES;
+    self.startSelect = NO;
+}
+
+#pragma mark - 日期代理函数
+- (void)calendarViewConfirmClickWithStartDate:(NSInteger)startDate endDate:(NSInteger)endDate {
+    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc]init];
+    [dateFormatter setDateFormat: @"yyyy-MM-dd"];
+    NSString *startDateString = [dateFormatter stringFromDate:[NSDate dateWithTimeIntervalSince1970:startDate]];
+    if (self.startSelect) {
+        [self.qshjValue setTitle:startDateString forState:UIControlStateNormal];
+    }
+    if (self.endSelect) {
+        [self.jshjValue setTitle:startDateString forState:UIControlStateNormal];
+    }
+}
+
+@end

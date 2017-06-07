@@ -1,0 +1,31 @@
+; (function () {
+    var objs = document.getElementsByTagName("img");
+    var arr = [];
+    for (var i = 0, len = objs.length; i < len; i++) {
+        arr[i] = objs[i];
+    }
+
+    var emp = ['ystAPP_back.png',
+        'ystAPP_search.png', 'ystAPP_consult.png',
+        'ystAPP_hot.png', 'ystAPP_left.png', 'ystAPP_news.png',
+        'ystAPP_navMore.png', 'ystAPP_right.png', 'ystAPP_resultBack.png',
+        'ystAPP_srchNone.png', 'ystAPP_close.png', 'ystAPP_new.png', 'back.png', 'left.png', 'right.png', 'ystAPP_consultMore.png'];
+    for (var i = 0; i < objs.length; i++) {
+        for (var j = 0; j < emp.length; j++) {
+            var index = objs[i].src.indexOf(emp[j]);
+            if (index > 0) {
+                arr.splice(i, 1, null);
+            }
+        }
+    }
+    for (var i = 0; i < arr.length; i++) {
+
+        if (arr[i] != null) {
+            arr[i].onclick = function () {
+
+
+                window.phone.openImage(this.src);
+            }
+        }
+    }
+})();

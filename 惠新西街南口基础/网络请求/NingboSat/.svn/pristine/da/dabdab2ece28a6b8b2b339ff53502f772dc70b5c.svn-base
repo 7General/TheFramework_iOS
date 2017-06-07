@@ -1,0 +1,281 @@
+//
+//  AssistantViewController.m
+//  NingboSat
+//
+//  Created by 王会洲 on 16/9/6.
+//  Copyright © 2016年 王会洲. All rights reserved.
+//
+
+#import "AssistantViewController.h"
+#import "Config.h"
+#import "HZSigmentScrollView.h"
+#import "RunGuidesViewController.h"
+#import "DateViewController.h"
+#import "GuideViewController.h"
+#import "LookViewController.h"
+
+#import "Masonry.h"
+#import "UIButton+ImageAndTitle.h"
+#import "UIButton+FillColor.h"
+#import "UIImage+AlphaSet.h"
+#import "MatrixView.h"
+#import "UIButton+ImageAndTitle.h"
+
+
+#import <BaiduMapAPI_Map/BMKMapComponent.h>
+#import <BaiduMapAPI_Location/BMKLocationComponent.h>
+#import "ReadViewController.h"
+
+#import "BookDetailViewController.h"
+#import "TextViewController.h"
+#import "BookListViewController.h"
+#import "BookItemViewController.h"
+#import "SelectBookTimeViewController.h"
+#import "LookCanBookViewController.h"
+#import "YSWebController.h"
+#import "CheckDataViewController.h"
+#import "NSObject+UserInfoState.h"
+#import "YSAlertView.h"
+#import "LoginViewController.h"
+#import "SuccessViewController.h"
+#import "LookDetailViewController.h"
+
+
+#define ICON_TITLE @"title"
+#define ICON_IMG @"icon"
+
+@interface AssistantViewController ()<UINavigationControllerDelegate,RunGuidesViewControllerDelegate,GuideViewControllerDelegate>
+
+
+@property (nonatomic, strong) HZSigmentScrollView * SingmentScrollView;
+
+/**办税指南*/
+@property (nonatomic, strong) RunGuidesViewController * runGuideVC;
+/**征期日历*/
+@property (nonatomic, strong) DateViewController * dateVC;
+/**办税指南*/
+@property (nonatomic, strong) GuideViewController * guidesVC;
+/**税收法规*/
+@property (nonatomic, strong) YSWebController * webViewVC;
+
+@property (nonatomic,strong)NSArray *typeInfoArray;
+@property (nonatomic, strong)MatrixView *typeView;
+/**地图*/
+@property (nonatomic, strong) BMKMapView * mapView;
+/**定位*/
+@property (nonatomic, strong) BMKLocationService * locService;
+/**用户定位信息*/
+@property (nonatomic, strong) BMKUserLocation * userLocation;
+/**用户目的地信息*/
+@property (nonatomic, assign) CLLocationCoordinate2D  userEndLocation;
+
+
+
+@end
+
+@implementation AssistantViewController
+
+-(void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    [_mapView viewWillAppear];
+    _mapView.delegate = self.runGuideVC; // 此处记得不用的时候需要置nil，否则影响内存的释放
+}
+-(void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+    [_mapView viewWillDisappear];
+    _mapView.delegate = nil; // 不用时，置nil
+}
+
+-(void)navigationController:(UINavigationController *)navigationController willShowViewController:(UIViewController *)viewController animated:(BOOL)animated {
+    //每次当navigation中的界面切换，设为空。本次赋值只在程序初始化时执行一次
+    static UIViewController *lastController = nil;
+    //若上个view不为空
+    if (lastController != nil) {
+        //若该实例实现了viewWillDisappear方法，则调用
+        if ([lastController respondsToSelector:@selector(viewWillDisappear:)]) {
+            [lastController viewWillDisappear:animated];
+        }
+    }
+    //将当前要显示的view设置为lastController，在下次view切换调用本方法时，会执行viewWillDisappear
+    lastController = viewController;
+    [viewController viewWillAppear:animated];
+    if ( [viewController isKindOfClass:[BookDetailViewController class]]
+        || [viewController isKindOfClass:[BookListViewController class]]
+        || [viewController isKindOfClass:[BookItemViewController class]]
+        || [viewController isKindOfClass:[SelectBookTimeViewController class]]
+        || [viewController isKindOfClass:[LookCanBookViewController class]]
+        || [viewController isKindOfClass:[CheckDataViewController class]]
+        || [viewController isKindOfClass:[SuccessViewController class]]
+        || [viewController isKindOfClass:[LookDetailViewController class]]
+        ) {
+        [navigationController setNavigationBarHidden:NO animated:animated];
+    } else {
+        [navigationController setNavigationBarHidden:YES animated:animated];
+    }
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.view.backgroundColor = [UIColor whiteColor];
+    self.navigationController.delegate = self;
+    self.title = @"助手";
+    
+    /**scrollview*/
+    self.runGuideVC = [[RunGuidesViewController alloc] init];
+    self.runGuideVC.delegate = self;
+    self.dateVC = [[DateViewController alloc] init];
+    self.guidesVC = [[GuideViewController alloc] init];
+    self.guidesVC.delegate = self;
+    self.webViewVC = [[YSWebController alloc] initWithController:self];
+    self.webViewVC.hideStatusCover = YES;
+    [self initBMK:^{
+        [self initView];
+    }];
+
+}
+
+
+
+
+-(void)initView {
+    self.SingmentScrollView = [[HZSigmentScrollView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - 64)];
+    // 设置标题
+    self.SingmentScrollView.titleScrollArrys = @[@"办税地图",@"征期日历",@"办税指南",@"税收法规"].mutableCopy;
+    // 设置控制器
+    self.SingmentScrollView.titleControllerArrys = @[self.runGuideVC,self.dateVC,self.guidesVC,self.webViewVC].mutableCopy;
+    [self.view addSubview:self.SingmentScrollView];
+    
+    self.typeInfoArray = @[@{ICON_TITLE:@"办税地图",ICON_IMG:@"assistant_map"},
+                           @{ICON_TITLE:@"征期日历",ICON_IMG:@"assistant_calendar"},
+                           @{ICON_TITLE:@"办税指南",ICON_IMG:@"assistant_guide"},
+                           @{ICON_TITLE:@"税收法规",ICON_IMG:@"taxLawsIcon"},
+                           ];
+    [self addTypeView];
+    
+    [self.SingmentScrollView mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.typeView.superview.mas_bottom).offset(-44);
+        make.left.and.right.equalTo(self.view);
+        make.bottom.mas_equalTo(self.view).offset(-49);
+    }];
+
+}
+
+
+- (void)addTypeView {
+    CGFloat rowHeight = 0;
+    NSInteger colNum = 4;
+    NSMutableArray *btnItems = [NSMutableArray array];
+    for (NSInteger i = 0; i < self.typeInfoArray.count; i++) {
+        NSDictionary *dict = self.typeInfoArray[i];
+        UIButton *button = [self buttonWithDict:dict];
+        button.tag = i;
+        [button addTarget:self action:@selector(typeButtonClick:) forControlEvents:UIControlEventTouchUpInside];
+        CGFloat width = CGRectGetWidth(self.view.bounds) / colNum;
+        CGFloat height = button.currentImage.size.height + button.titleLabel.font.lineHeight + 5 * 3;
+        button.bounds = CGRectMake(0, 0, width, height);
+        [btnItems addObject:button];
+        [button setContentAlignment:ButtonContentAlignmentVertical withGap:5];
+        
+        if (rowHeight < height) {
+            rowHeight = height;
+        }
+    }
+    
+    UIView *matrixBgView = [[UIView alloc] init];
+    [self.view addSubview:matrixBgView];
+    matrixBgView.backgroundColor = [UIColor whiteColor];
+    [matrixBgView mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.equalTo(self.view).offset(20);
+        make.left.and.right.equalTo(self.view);
+        make.height.mas_equalTo(20 + rowHeight * (((NSInteger)(self.typeInfoArray.count - 1) / colNum) + 1));
+    }];
+    
+    CGRect matrixFrame = CGRectMake(0, 0, CGRectGetWidth(self.view.bounds), rowHeight);
+    MatrixView * matrixView = [[MatrixView alloc] initWithFrame:matrixFrame items:btnItems cols:colNum splitColor:[UIColor clearColor] maxSize:CGSizeMake(MAXFLOAT, CGRectGetHeight(self.view.bounds))];
+    matrixView.backgroundColor = [UIColor whiteColor];
+    [matrixBgView addSubview:matrixView];
+    self.typeView = matrixView;
+    [matrixView mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.edges.equalTo(matrixBgView).insets(UIEdgeInsetsMake(10, 0, 10, 0));
+    }];
+}
+
+- (UIButton *)buttonWithDict:(NSDictionary *)dict {
+    UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+    [button setTitle:dict[ICON_TITLE] forState:UIControlStateNormal];
+    [button setTitleColor:YSColor(0x50, 0x50, 0x50) forState:UIControlStateNormal];
+    button.titleLabel.font = FONT_BY_SCREEN(15);
+    button.titleLabel.numberOfLines = 0;
+    UIImage *image = [UIImage imageNamed:dict[ICON_IMG]];
+    [button setImage:image forState:UIControlStateNormal];
+    [button setImage:[UIImage imageByApplyingAlpha:0.5 image:image] forState:UIControlStateHighlighted];
+    return button;
+}
+
+/**配置百度地图*/
+-(void)initBMK:(void(^)())complate {
+    self.mapView = [[BMKMapView alloc]initWithFrame:CGRectMake(0, 0,SCREEN_WIDTH , SCREEN_HEIGHT - 47 - 64 - 43)];
+    self.locService = [[BMKLocationService alloc]init];
+    
+    self.runGuideVC.mapView = self.mapView;
+    self.runGuideVC.locService = self.locService;
+    
+    if (complate) {
+        complate();
+    }
+}
+
+-(void)customPusviewController:(BMKUserLocation *)location withData:(reveModel *)reve {
+    LookViewController * look = [[LookViewController alloc] init];
+    look.customUserLocation = location.location.coordinate;
+    look.lookRevModel = reve;
+    [self.navigationController pushViewController:look animated:YES];
+}
+-(void)customCellPusviewController:(CLLocationCoordinate2D)location withData:(reveModel *)reve {
+    LookViewController * look = [[LookViewController alloc] init];
+    look.customUserLocation = location;
+    look.lookRevModel = reve;
+    [self.navigationController pushViewController:look animated:YES];
+}
+
+-(void)customPusviewController:(NSString *)url {
+    ReadViewController * read = [[ReadViewController alloc] init];
+    read.ReadUrl = url;
+    [self.navigationController pushViewController:read animated:YES];
+}
+#pragma mark - 跳转预约办税
+-(void)customPusBookController:(BOOL)isUsed withData:(reveModel *)reve {
+    if (![NSObject isLogin]) {
+        [self unReachable];
+        return;
+    }
+    BookDetailViewController * bookD = [[BookDetailViewController alloc] init];
+    bookD.isUserSelectModel = isUsed;
+    bookD.selectReveModel = reve;
+    [self.navigationController pushViewController:bookD animated:YES];
+}
+
+- (void)unReachable {
+    YSAlertView *alertView = [YSAlertView alertWithTitle:nil message:@"该模块需要登录才能使用，是否立即登录？" buttonTitles:@"稍后", @"立即登录", nil];
+    [alertView show];
+    [alertView alertButtonClick:^(NSInteger buttonIndex) {
+        if (buttonIndex == 1) {
+            [self presentViewController:[LoginViewController new] animated:YES completion:^{
+                
+            }];
+        }
+    }];
+}
+
+
+#pragma mark - button click action
+- (void)typeButtonClick:(UIButton *)sender {
+    NSInteger index = sender.tag;
+    [self.SingmentScrollView.sigmentView setIndex:index];
+    if (index == 3) {
+        self.webViewVC.urlStr = TAX_REGULATION_URL;
+    }
+}
+
+
+@end

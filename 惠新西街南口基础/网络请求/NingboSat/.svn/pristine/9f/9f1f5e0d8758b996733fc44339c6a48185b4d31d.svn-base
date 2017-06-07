@@ -1,0 +1,25 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "f5e522ae-5c70-4e39-9c7c-6df45849bcc0++439",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+    "f5e522ae-5c70-4e39-9c7c-6df45849bcc0++439" : {
+
+    }
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "f5e522ae-5c70-4e39-9c7c-6df45849bcc0++439" : 0
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "E72947E1-8553-4685-A243-2F119E0F53AC",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "f5e522ae-5c70-4e39-9c7c-6df45849bcc0++439" : "NingboSat\/"
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "NingboSat",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "NingboSat.xcworkspace",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "svn:\/\/139.217.24.226\/code\/ios\/eshuike\/eshuike-all",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Subversion",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "f5e522ae-5c70-4e39-9c7c-6df45849bcc0++439"
+    }
+  ]
+}

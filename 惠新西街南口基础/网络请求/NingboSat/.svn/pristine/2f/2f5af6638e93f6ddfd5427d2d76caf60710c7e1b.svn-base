@@ -1,0 +1,77 @@
+//
+//  YSTabBar.h
+//  NingboSat
+//
+//  Created by 王会洲 on 16/9/6.
+//  Copyright © 2016年 王会洲. All rights reserved.
+//
+
+#import "YSTabBar.h"
+#import "YSTabBarButton.h"
+
+@interface YSTabBar ()
+
+
+@end
+@implementation YSTabBar
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        
+        
+    }
+    return self;
+}
+
+
+
+- (void)addTabBarButtonWithItem:(UITabBarItem *)tabBarItem {
+    YSTabBarButton * button = [[YSTabBarButton alloc] init];
+    [self addSubview:button];
+    
+    button.item = tabBarItem;
+    
+    
+    //监听按钮点击
+    [button addTarget:self action:@selector(buttonClick:) forControlEvents:UIControlEventTouchDown];
+    //4:默认选中
+    if (self.subviews.count == 1) {
+        [self buttonClick:button];
+    }
+}
+
+
+- (void)buttonClick:(YSTabBarButton *)button {
+    
+    //通知代理
+    if ([self.delegate respondsToSelector:@selector(tabBar:didSelectButtonItem:to:)]) {
+        [self.delegate tabBar:self didSelectButtonItem:(int)self.selectButton.tag to:(int)button.tag];
+    }
+    
+    self.selectButton.selected = NO;
+    button.selected = YES;
+    self.selectButton = button;
+}
+
+-(void)layoutSubviews {
+    [super layoutSubviews];
+    
+    CGFloat buttonH = self.frame.size.height;
+    CGFloat buttonW = self.frame.size.width  / self.subviews.count;
+    CGFloat buttonY = 0;
+    
+    for (int index = 0; index < self.subviews.count; index++) {
+        
+        YSTabBarButton * button = self.subviews[index];
+        CGFloat buttonX = index * buttonW;
+        button.frame = CGRectMake(buttonX, buttonY, buttonW, buttonH);
+        
+        //绑定Tag
+        button.tag = index;
+    }
+    
+}
+
+@end

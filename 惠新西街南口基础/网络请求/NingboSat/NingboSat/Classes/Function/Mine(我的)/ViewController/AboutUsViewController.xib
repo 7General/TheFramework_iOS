@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="11201" systemVersion="15G1004" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES">
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="11161"/>
+        <capability name="Constraints to layout margins" minToolsVersion="6.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="AboutUsViewController">
+            <connections>
+                <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="i5M-Pr-FkT">
+            <rect key="frame" x="0.0" y="0.0" width="414" height="736"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="AboutUsBg" translatesAutoresizingMaskIntoConstraints="NO" id="trz-3F-i4p"/>
+                <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="AboutUsLogoIcon" translatesAutoresizingMaskIntoConstraints="NO" id="5j9-FN-ntY">
+                    <constraints>
+                        <constraint firstAttribute="height" constant="90" id="Ibg-JU-xli"/>
+                        <constraint firstAttribute="width" constant="90" id="tzh-Mw-E8E"/>
+                    </constraints>
+                </imageView>
+                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="宁波国税 V1.0" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="vHx-qR-7oC">
+                    <constraints>
+                        <constraint firstAttribute="width" constant="251" id="Zl8-NH-jsE"/>
+                        <constraint firstAttribute="height" constant="31" id="n8k-5Z-Kjr"/>
+                    </constraints>
+                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                    <color key="textColor" red="0.50196078430000002" green="0.50196078430000002" blue="0.50196078430000002" alpha="1" colorSpace="calibratedRGB"/>
+                    <nil key="highlightedColor"/>
+                </label>
+                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Copyright©2016,宁波国税" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="VKS-yd-20O">
+                    <constraints>
+                        <constraint firstAttribute="height" constant="21" id="TGn-PW-YFd"/>
+                        <constraint firstAttribute="width" constant="308" id="cwr-tP-TEB"/>
+                    </constraints>
+                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                    <color key="textColor" red="0.50196078431372548" green="0.50196078431372548" blue="0.50196078431372548" alpha="1" colorSpace="calibratedRGB"/>
+                    <nil key="highlightedColor"/>
+                </label>
+            </subviews>
+            <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <constraints>
+                <constraint firstItem="trz-3F-i4p" firstAttribute="top" secondItem="i5M-Pr-FkT" secondAttribute="top" id="4aj-w8-Uv5"/>
+                <constraint firstItem="vHx-qR-7oC" firstAttribute="top" secondItem="5j9-FN-ntY" secondAttribute="bottom" constant="10" id="B1r-UD-lpl"/>
+                <constraint firstItem="vHx-qR-7oC" firstAttribute="centerX" secondItem="5j9-FN-ntY" secondAttribute="centerX" id="Pms-ld-AGA"/>
+                <constraint firstItem="trz-3F-i4p" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" id="Xdc-8b-vaV"/>
+                <constraint firstAttribute="trailing" secondItem="trz-3F-i4p" secondAttribute="trailing" id="dvR-fN-eBf"/>
+                <constraint firstItem="VKS-yd-20O" firstAttribute="centerX" secondItem="trz-3F-i4p" secondAttribute="centerX" id="jN5-j8-ARv"/>
+                <constraint firstAttribute="bottomMargin" secondItem="VKS-yd-20O" secondAttribute="bottom" constant="30" id="lG5-DP-EB9"/>
+                <constraint firstItem="5j9-FN-ntY" firstAttribute="top" secondItem="i5M-Pr-FkT" secondAttribute="top" constant="120" id="qbP-Tn-SdT"/>
+                <constraint firstAttribute="bottom" secondItem="trz-3F-i4p" secondAttribute="bottom" id="v61-9m-aRz"/>
+                <constraint firstItem="5j9-FN-ntY" firstAttribute="centerX" secondItem="trz-3F-i4p" secondAttribute="centerX" id="yrZ-3S-rlO"/>
+            </constraints>
+            <point key="canvasLocation" x="25.5" y="52.5"/>
+        </view>
+    </objects>
+    <resources>
+        <image name="AboutUsBg" width="375" height="667"/>
+        <image name="AboutUsLogoIcon" width="90" height="90"/>
+    </resources>
+</document>

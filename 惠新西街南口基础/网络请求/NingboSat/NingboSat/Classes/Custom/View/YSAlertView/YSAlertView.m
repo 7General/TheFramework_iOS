@@ -1,0 +1,450 @@
+//
+//  YSAlertView.m
+//  eTax
+//
+//  Created by ysyc_liu on 16/8/11.
+//  Copyright © 2016年 ysyc. All rights reserved.
+//
+
+#import "YSAlertView.h"
+#import "Masonry.h"
+#import "UIButton+YSSolidColorButton.h"
+
+/// 屏幕Bounds.
+#ifndef SCREEN_BOUNDS
+#define SCREEN_BOUNDS [UIScreen mainScreen].bounds
+#endif
+/// 屏幕宽度.
+#ifndef SCREEN_WIDTH
+#define SCREEN_WIDTH  CGRectGetWidth([UIScreen mainScreen].bounds)
+#endif
+/// 屏幕高度.
+#ifndef SCREEN_HEIGHT
+#define SCREEN_HEIGHT CGRectGetHeight([UIScreen mainScreen].bounds)
+#endif
+
+// 屏幕高度系数
+#ifndef kSCALEHEIGHT
+#define kSCALEHEIGHT (SCREEN_HEIGHT / 667)
+#endif
+// 屏幕宽度系数
+#ifndef kSCALEWIDTH
+#define kSCALEWIDTH (SCREEN_WIDTH / 375)
+#endif
+// 设置颜色
+#ifndef YSColor
+#define YSColor(r, g, b) [UIColor colorWithRed:(r)/255.0 green:(g)/255.0 blue:(b)/255.0 alpha:1.0]
+#endif
+// 设置字体
+#ifndef SCREENSTAE
+#define SCREENSTAE 2
+#endif
+#ifndef FONTWITHSIZE_LIGHT_ADAPTER
+#define FONTWITHSIZE_LIGHT_ADAPTER(obj) [UIFont fontWithName:@"STHeitiSC-Light" size:((kSCALEWIDTH > 1) ? (obj + SCREENSTAE) : (obj))]
+#endif
+
+@interface YSAlertViewManager : NSObject
+
++ (instancetype)defaultManager;
+
+- (void)addAlerView:(YSAlertView *)view;
+- (void)removeAlertView:(YSAlertView *)view;
+
+@property (nonatomic, strong) NSMutableArray<YSAlertView *> * stackArray;
+@property (nonatomic, strong) YSAlertView *currentView;
+
+@end
+
+@implementation YSAlertViewManager
+
++ (instancetype)defaultManager {
+    static YSAlertViewManager *manager = nil;
+    static dispatch_once_t onceToken;
+    
+    dispatch_once(&onceToken, ^{
+        manager = [[self alloc] init];
+    });
+    return manager;
+    
+}
+
+- (void)addAlerView:(YSAlertView *)view {
+    if (!view) {
+        return;
+    }
+    if (self.currentView) {
+        [self.stackArray addObject:self.currentView];
+        [self.currentView dismiss];
+    }
+    self.currentView = view;
+}
+
+- (void)removeAlertView:(YSAlertView *)view {
+    if (!view) {
+        return;
+    }
+    self.currentView = nil;
+    if (self.stackArray.count && ![self.stackArray containsObject:view]) {
+        [self.stackArray.lastObject show];
+        [self.stackArray removeObject:self.currentView];
+    }
+}
+
+- (NSMutableArray<YSAlertView *> *)stackArray {
+    if (!_stackArray) {
+        _stackArray = [NSMutableArray array];
+    }
+    return _stackArray;
+}
+
+@end
+
+
+
+@interface YSAlertView ()
+
+@property (nonatomic, strong) UIView * mainView;
+@property (nonatomic, strong) UIImageView * showImageView;
+
+@property (nonatomic, strong) UILabel * textLabel;
+
+@property (nonatomic, strong) NSMutableArray * buttonsArray;
+
+@property (nonatomic, strong) NSMutableArray * splitLineArray;
+
+@property (nonatomic, copy) YSAlertClickButtonBlock alertClickBlock;
+
+@end
+
+@implementation YSAlertView
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        [self initView];
+        self.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.6];
+        self.windowLevel = UIWindowLevelStatusBar + 0.1;
+        self.alpha = 0;
+    }
+    
+    return self;
+}
+
++ (instancetype)shareInstance {
+    return [[self alloc] initWithFrame:[UIScreen mainScreen].bounds];
+}
+
++ (instancetype)alertWithTitle:(nullable NSString *)title message:(nullable NSString *)message buttonTitles:(nullable NSString *)buttonTitles, ... NS_REQUIRES_NIL_TERMINATION {
+    YSAlertView * alertView = [YSAlertView shareInstance];
+    alertView.title = title;
+    alertView.message = message;
+    NSMutableArray * array = [NSMutableArray array];
+    va_list argList;
+    if (buttonTitles) {
+        [array addObject:buttonTitles];
+        va_start(argList, buttonTitles);
+        NSString * tmp;
+        while ((tmp = va_arg(argList, NSString *))) {
+            [array addObject:tmp];
+        }
+        alertView.buttonTitles = array;
+    }
+    
+    return alertView;
+}
+
++ (instancetype) alertWithMessage:(NSString*)message sureButtonTitle:(nullable NSString *)buttonTitle{
+    return [YSAlertView alertWithTitle:@"" message:message buttonTitles:buttonTitle, nil];
+
+}
++ (instancetype)alertWithImage:(UIImage *)image message:(nullable NSString *)message buttonTitles:(nullable NSString *)buttonTitles, ... NS_REQUIRES_NIL_TERMINATION{
+    YSAlertView * alertView = [YSAlertView shareInstance];
+    alertView.title = @"";
+    alertView.image = image;
+    alertView.message = message;
+    NSMutableArray * array = [NSMutableArray array];
+    va_list argList;
+    if (buttonTitles) {
+        [array addObject:buttonTitles];
+        va_start(argList, buttonTitles);
+        NSString * tmp;
+        while ((tmp = va_arg(argList, NSString *))) {
+            [array addObject:tmp];
+        }
+        alertView.buttonTitles = array;
+    }
+    
+    return alertView;
+
+}
+
++ (instancetype)alertWithAttrTitle:(nullable NSAttributedString *)title attrMessage:(nullable NSAttributedString *)message buttonTitles:(nullable NSString *)buttonTitles, ... NS_REQUIRES_NIL_TERMINATION {
+    YSAlertView * alertView = [YSAlertView shareInstance];
+    alertView.attrTitle = title;
+    alertView.attrMessage = message;
+    NSMutableArray * array = [NSMutableArray array];
+    va_list argList;
+    if (buttonTitles) {
+        [array addObject:buttonTitles];
+        va_start(argList, buttonTitles);
+        NSString * tmp;
+        while ((tmp = va_arg(argList, NSString *))) {
+            [array addObject:tmp];
+        }
+        alertView.buttonTitles = array;
+    }
+    
+    return alertView;
+}
+
+- (void)initView {
+    
+    {
+        UIView * view = [[UIView alloc] init];
+        [self addSubview:view];
+        view.backgroundColor = [UIColor whiteColor];
+        view.layer.cornerRadius = 8;
+        view.layer.masksToBounds = YES;
+        
+        [view mas_makeConstraints:^(MASConstraintMaker *make) {
+            make.centerY.equalTo(self);
+            make.left.equalTo(self).offset(30);
+            make.right.equalTo(self).offset(-30);
+        }];
+        
+        self.mainView = view;
+    }
+    {
+        self.showImageView = [[UIImageView alloc] init];
+        [self.mainView addSubview:self.showImageView];
+
+        [self.showImageView mas_makeConstraints:^(MASConstraintMaker *make) {
+            make.top.equalTo(self.mainView).offset(30);
+            make.centerX.equalTo(self.mainView.mas_centerX);
+            make.size.mas_equalTo(CGSizeMake(0, 0));
+            
+        }];
+    }
+    {
+        UILabel * label = [[UILabel alloc] init];
+        [self.mainView addSubview:label];
+        label.numberOfLines = 0;
+        label.font = FONTWITHSIZE_LIGHT_ADAPTER(15);
+        label.textAlignment = NSTextAlignmentCenter;
+        [label mas_makeConstraints:^(MASConstraintMaker *make) {
+            make.top.equalTo(self.showImageView.mas_bottom).offset(5);
+            make.left.equalTo(self.mainView).offset(30);
+            make.right.equalTo(self.mainView).offset(-30);
+        }];
+        self.textLabel = label;
+    }
+}
+
+- (void)resetConstraint {
+    {
+        if (self.image != nil) {
+            self.showImageView.image = self.image;
+            
+            [self.showImageView mas_updateConstraints:^(MASConstraintMaker *make) {
+                make.size.mas_equalTo(self.image.size);
+            }];
+        }else{
+            [self.showImageView mas_updateConstraints:^(MASConstraintMaker *make) {
+                make.size.mas_equalTo(CGSizeMake(0, 0));
+            }];
+        }
+
+    }
+    
+    {
+        self.textLabel.attributedText = [self attributedText];
+        CGSize size = [self.textLabel sizeThatFits:CGSizeMake(SCREEN_WIDTH - 60 * 2, MAXFLOAT)];
+        [self.textLabel mas_updateConstraints:^(MASConstraintMaker *make) {
+            make.top.equalTo(self.showImageView.mas_bottom).offset(5);
+            make.height.mas_equalTo(size.height);
+        }];
+    }
+    
+    if (self.vertical) {
+        for (NSInteger i = 0; i < self.buttonsArray.count; i++) {
+            UIButton * button = self.buttonsArray[i];
+            [button mas_remakeConstraints:^(MASConstraintMaker *make) {
+                make.top.mas_equalTo(self.textLabel.mas_bottom).offset(40 + i * 44);
+                make.left.and.right.equalTo(self.textLabel);
+                make.height.mas_equalTo(44);
+            }];
+        }
+    }
+    else {
+        for (NSInteger i = 0; i < self.buttonsArray.count; i++) {
+            UIButton * button = self.buttonsArray[i];
+            [button mas_remakeConstraints:^(MASConstraintMaker *make) {
+                make.top.mas_equalTo(self.textLabel.mas_bottom).offset(25);
+                make.height.mas_equalTo(44);
+                make.left.equalTo(self.mainView).offset(i * (SCREEN_WIDTH - 60) / self.buttonsArray.count);
+                make.width.mas_equalTo((SCREEN_WIDTH - 60) / self.buttonsArray.count);
+            }];
+        }
+        
+        {
+            UIView * line = [[UIView alloc] init];
+            [self.mainView addSubview:line];
+            line.backgroundColor = YSColor(0xe6, 0xe6, 0xe6);
+            [line mas_makeConstraints:^(MASConstraintMaker *make) {
+                make.top.mas_equalTo(self.textLabel.mas_bottom).offset(25);
+                make.left.and.right.equalTo(self.mainView);
+                make.height.mas_equalTo(1);
+            }];
+            [self.splitLineArray addObject:line];
+        }
+        
+        for (NSInteger i = 1; i < self.buttonsArray.count; i++) {
+            UIView * line = [[UIView alloc] init];
+            [self.mainView addSubview:line];
+            line.backgroundColor = YSColor(0xe6, 0xe6, 0xe6);
+            [line mas_makeConstraints:^(MASConstraintMaker *make) {
+                make.top.mas_equalTo(self.textLabel.mas_bottom).offset(25);
+                make.left.equalTo(self.mainView).offset(i * (SCREEN_WIDTH - 60) / self.buttonsArray.count - 0.5);
+                make.width.mas_equalTo(1);
+                make.height.mas_equalTo(44);
+            }];
+            [self.splitLineArray addObject:line];
+        }
+    }
+    
+    {
+        [self.mainView layoutIfNeeded];
+        UIView * view = self.buttonsArray.lastObject;
+        if (view) {
+            [self.mainView mas_updateConstraints:^(MASConstraintMaker *make) {
+                make.bottom.mas_equalTo(view.mas_bottom).offset(((self.vertical) ? 20 : 0));
+            }];
+        }
+        
+    }
+}
+
+- (void)show {
+    [self reAddbuttons:self.buttonTitles];
+    [self resetConstraint];
+    self.hidden = NO;
+    [UIView animateWithDuration:0.2 animations:^{
+        self.alpha = 1;
+    }];
+    
+    [[YSAlertViewManager defaultManager] addAlerView:self];
+}
+
+- (void)dismiss {
+    [UIView animateWithDuration:0.1 animations:^{
+        self.alpha = 0;
+    } completion:^(BOOL finished) {
+        self.hidden = YES;
+        [self resignKeyWindow];
+    }];
+    
+    [[YSAlertViewManager defaultManager] removeAlertView:self];
+}
+
+- (void)alertButtonClick:(YSAlertClickButtonBlock)clickBlock {
+    self.alertClickBlock = clickBlock;
+}
+
+#pragma mark - set and get
+
+- (void)setButtonTitles:(NSArray *)buttonTitles {
+    _buttonTitles = buttonTitles;
+}
+
+- (NSMutableArray *)buttonsArray {
+    if (nil == _buttonsArray) {
+        _buttonsArray = [NSMutableArray array];
+    }
+    return _buttonsArray;
+}
+
+- (NSMutableArray *)splitLineArray {
+    if (nil == _splitLineArray) {
+        _splitLineArray = [NSMutableArray array];
+    }
+    return _splitLineArray;
+}
+
+
+#pragma mark - private method
+
+- (NSAttributedString *)attributedText {
+    NSMutableAttributedString * result = [[NSMutableAttributedString alloc] init];
+    
+    NSDictionary * attrDict = @{NSFontAttributeName:FONTWITHSIZE_LIGHT_ADAPTER(15), NSForegroundColorAttributeName:YSColor(50, 50, 50)};
+    if (self.title.length > 0) {
+        NSAttributedString * attr = [[NSAttributedString alloc] initWithString:self.title attributes:attrDict];
+        [result appendAttributedString:attr];
+    }
+    
+    if (self.attrTitle.length > 0) {
+        [result appendAttributedString:self.attrTitle];
+    }
+    
+    if (self.message.length > 0) {
+        NSString * message = self.message;
+        if (result.length > 0) {
+            message = [NSString stringWithFormat:@"\n\n%@", self.message];
+        }
+        NSAttributedString * attr = [[NSAttributedString alloc] initWithString:message attributes:attrDict];
+        [result appendAttributedString:attr];
+    }
+    
+    if (self.attrMessage.length > 0) {
+        if (result.length > 0) {
+            NSAttributedString * attr = [[NSAttributedString alloc] initWithString:@"\n" attributes:attrDict];
+            [result appendAttributedString:attr];
+        }
+        [result appendAttributedString:self.attrMessage];
+    }
+    
+    return result;
+}
+
+- (void)reAddbuttons:(NSArray *)buttonTitles {
+    for (UIButton * button in self.buttonsArray) {
+        [button removeFromSuperview];
+    }
+    [self.buttonsArray removeAllObjects];
+    
+    for (NSInteger i = 0; i < buttonTitles.count; i++) {
+        NSString * title = buttonTitles[i];
+        UIButton * button = nil;
+        if (0 == i && self.vertical) {
+            button = [UIButton buttonWithColor:YSColor(0x4b, 0xc4, 0xfb) title:title];
+        }
+        else {
+            button = [UIButton buttonWithType:UIButtonTypeCustom];
+            [button setTitle:title forState:UIControlStateNormal];
+            [button setTitleColor:YSColor(0x4b, 0xc4, 0xfb) forState:UIControlStateNormal];
+        }
+        [self.mainView addSubview:button];
+        button.titleLabel.font = FONTWITHSIZE_LIGHT_ADAPTER(17);
+        [button addTarget:self action:@selector(buttonClick:) forControlEvents:UIControlEventTouchUpInside];
+        button.tag = i;
+        [self.buttonsArray addObject:button];
+    }
+    
+    for (UIView * view in self.splitLineArray) {
+        [view removeFromSuperview];
+    }
+    [self.splitLineArray removeAllObjects];
+}
+
+#pragma mark - button click action
+
+- (void)buttonClick:(UIButton *)sender {
+    if (self.alertClickBlock) {
+        self.alertClickBlock(sender.tag);
+    }
+    
+    [self dismiss];
+}
+
+@end
+

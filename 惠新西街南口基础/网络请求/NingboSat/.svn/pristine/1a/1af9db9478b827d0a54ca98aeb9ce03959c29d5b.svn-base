@@ -1,0 +1,327 @@
+//
+//  TaxSearchController.m
+//  NingboSat
+//
+//  Created by ysyc_liu on 16/9/20.
+//  Copyright © 2016年 王会洲. All rights reserved.
+//
+
+#import "TaxSearchController.h"
+#import "Config.h"
+#import "Masonry.h"
+#import "UIButton+ImageAndTitle.h"
+#import "UIButton+FillColor.h"
+#import "UIImage+AlphaSet.h"
+#import "MatrixView.h"
+#import "UIButton+ImageAndTitle.h"
+#import "YSAlertView.h"
+#import "RequestBase.h"
+// 内容视图.
+#import "TaxerInfoView.h"
+#import "TaxDeclarePayInView.h"
+#import "TaxApplicationView.h"
+
+#import "TaxSearchResultController.h"
+#import "YSWebController.h"
+
+#define ICON_TITLE @"title"
+#define ICON_IMG @"icon"
+
+@interface TaxSearchController()
+
+@property (nonatomic, strong)NSArray *typeInfoArray;
+@property (nonatomic, strong)UIView *bannerView;
+@property (nonatomic, strong)MatrixView *typeView;
+@property (nonatomic, strong)UIView *contentView;
+
+@property (nonatomic, copy)NSDictionary *dataDict;
+@property (nonatomic, strong)TaxerInfoModel *taxerInfo;
+
+@end
+
+@implementation TaxSearchController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.view.backgroundColor = YSColor(0xf5, 0xf5, 0xf5);
+    self.navigationItem.title = @"涉税信息查询";
+    self.typeInfoArray = @[@{ICON_TITLE:@"基本信息",ICON_IMG:@"search_baseInfo"},
+                           @{ICON_TITLE:@"联系方式",ICON_IMG:@"search_contact"},
+                           @{ICON_TITLE:@"税务信息",ICON_IMG:@"search_taxInfo"},
+                           @{ICON_TITLE:@"税种核定",ICON_IMG:@"search_taxCheck"},
+                           @{ICON_TITLE:@"发票核定",ICON_IMG:@"search_invoiceCheck"},
+                           @{ICON_TITLE:@"涉税申请",ICON_IMG:@"search_apply"},
+                           @{ICON_TITLE:@"申报缴款",ICON_IMG:@"search_declarePay"},
+                           ];
+    [self initView];
+    [self initData];
+    [self initObserver];
+}
+
+- (void)initData {
+    if ([NSObject isLogin]) {
+        NSDictionary *dict = @{@"taxpayer_code":TAXPAYER_CODE};
+        [RequestBase requestWith:APITypeTaxInfo Param:@{@"jsonParam" : [dict JSONParamString]} Complete:^(YSResponseStatus status, id object) {
+            if (status == 0) {
+                @try {
+                    self.dataDict = object[@"content"];
+                    self.taxerInfo = [MTLJSONAdapter modelOfClass:[TaxerInfoModel class] fromJSONDictionary:self.dataDict error:nil];
+                    [self contentLoadData];
+                } @catch (NSException *exception) {
+                    NSLog(@"[EXCEPTION] %@ : %@", [self class], exception);
+                }
+            }
+        } ShowOnView:self.view];
+    }
+}
+
+-(void)initView{
+    self.view.backgroundColor = YSColor(0xf5, 0xf5, 0xf5);
+    [self addBannerView];
+    [self addTypeView];
+    [self addContentView];
+}
+
+- (void)addBannerView {
+    UIImageView *bannerView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"search_banner"]];
+    [self.view addSubview:bannerView];
+    [bannerView mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.equalTo(self.view);
+        make.left.and.right.equalTo(self.view);
+        make.height.mas_equalTo(bannerView.image.size.height * KWidthScale);
+    }];
+    self.bannerView = bannerView;
+}
+
+- (void)addTypeView {
+    CGFloat rowHeight = 0;
+    NSMutableArray *btnItems = [NSMutableArray array];
+    for (NSInteger i = 0; i < self.typeInfoArray.count; i++) {
+        NSDictionary *dict = self.typeInfoArray[i];
+        UIButton *button = [self buttonWithDict:dict];
+        button.tag = i;
+        [button addTarget:self action:@selector(typeButtonClick:) forControlEvents:UIControlEventTouchUpInside];
+        CGFloat width = CGRectGetWidth(self.view.bounds) / 4;
+        CGFloat height = button.currentImage.size.height + button.titleLabel.font.lineHeight + 5 * 3;
+        button.bounds = CGRectMake(0, 0, width, height);
+        [btnItems addObject:button];
+        [button setContentAlignment:ButtonContentAlignmentVertical withGap:5];
+        
+        if (rowHeight < height) {
+            rowHeight = height;
+        }
+    }
+    
+    UIView *matrixBgView = [[UIView alloc] init];
+    [self.view addSubview:matrixBgView];
+    matrixBgView.backgroundColor = [UIColor whiteColor];
+    [matrixBgView mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.bannerView.mas_bottom);
+        make.left.and.right.equalTo(self.view);
+        make.height.mas_equalTo(20 + rowHeight * (((NSInteger)(self.typeInfoArray.count - 1) / 4) + 1));
+    }];
+    
+    CGRect matrixFrame = CGRectMake(0, 0, CGRectGetWidth(self.view.bounds), rowHeight);
+    MatrixView * matrixView = [[MatrixView alloc] initWithFrame:matrixFrame items:btnItems cols:4 splitColor:[UIColor clearColor] maxSize:CGSizeMake(MAXFLOAT, CGRectGetHeight(self.view.bounds))];
+    matrixView.backgroundColor = [UIColor whiteColor];
+    [matrixBgView addSubview:matrixView];
+    self.typeView = matrixView;
+    [matrixView mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.edges.equalTo(matrixBgView).insets(UIEdgeInsetsMake(10, 0, 10, 0));
+    }];
+}
+
+- (void)addContentView {
+    UIView *contentView = [[UIView alloc] init];
+    [self.view addSubview:contentView];
+    [contentView mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.typeView.superview.mas_bottom).offset(10);
+        make.left.and.right.equalTo(self.view);
+        make.bottom.equalTo(self.view);
+    }];
+    contentView.backgroundColor = YSColor(255, 255, 255);
+    self.contentView = contentView;
+    
+    
+    [self selectContentView:[self taxerBaseInfoView]];
+    
+}
+
+- (void)initObserver {
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
+}
+
+- (UIButton *)buttonWithDict:(NSDictionary *)dict {
+    UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+    [button setTitle:dict[ICON_TITLE] forState:UIControlStateNormal];
+    [button setTitleColor:YSColor(0x50, 0x50, 0x50) forState:UIControlStateNormal];
+    button.titleLabel.font = FONT_BY_SCREEN(15);
+    button.titleLabel.numberOfLines = 0;
+    UIImage *image = [UIImage imageNamed:dict[ICON_IMG]];
+    [button setImage:image forState:UIControlStateNormal];
+    [button setImage:[UIImage imageByApplyingAlpha:0.5 image:image] forState:UIControlStateHighlighted];
+    return button;
+}
+
+#pragma mark - get and set
+
+- (UIView *)taxerInfoViewWithType:(TaxerInfoShowType)type {
+    TaxerInfoView *view = [TaxerInfoView TaxerInfoViewWithType:type];
+    return view;
+}
+
+- (UIView *)taxerBaseInfoView {
+    return [self taxerInfoViewWithType:TaxerInfoShowBase];
+}
+- (UIView *)taxerContactInfoView {
+    return [self taxerInfoViewWithType:TaxerInfoShowContact];
+}
+- (UIView *)taxerTaxInfoView {
+    return [self taxerInfoViewWithType:TaxerInfoShowTax];
+}
+- (UIView *)taxerTaxCheckInfoView {
+    return [self taxerInfoViewWithType:TaxerInfoShowTaxCheck];
+}
+- (UIView *)taxerInvoiceCheckInfoView {
+    return [self taxerInfoViewWithType:TaxerInfoShowInvoiceCheck];
+}
+
+- (UIView *)taxApplicationView {
+    TaxApplicationView *view = [[TaxApplicationView alloc] init];
+    [view.commitBtn addTarget:self action:@selector(applicationSearchSubmit) forControlEvents:UIControlEventTouchUpInside];
+    return view;
+}
+- (UIView *)declarePayInView {
+    TaxDeclarePayInView *view = [[TaxDeclarePayInView alloc] init];
+    [view.commitBtn addTarget:self action:@selector(declarePaySearchSubmit) forControlEvents:UIControlEventTouchUpInside];
+    return view;
+}
+
+#pragma mark - other methods
+- (void)selectContentView:(UIView *)view {
+    for (UIView *subView in self.contentView.subviews) {
+        [subView removeFromSuperview];
+    }
+    if (!view) {
+        return;
+    }
+    [self.contentView addSubview:view];
+    [self contentLoadData];
+    [view mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.edges.equalTo(self.contentView);
+    }];
+}
+
+- (void)contentLoadData {
+    TaxSearchContentView *view = [[self.contentView subviews] firstObject];
+    if ([view isKindOfClass:[TaxerInfoView class]]) {
+        [view loadData:self.taxerInfo];
+    }
+}
+
+#pragma mark - button click action
+- (void)typeButtonClick:(UIButton *)sender {
+    NSInteger index = sender.tag;
+    UIView *view = nil;
+    switch (index) {
+        case 0:
+            view = [self taxerBaseInfoView];
+            break;
+        case 1:
+            view = [self taxerContactInfoView];
+            break;
+        case 2:
+            view = [self taxerTaxInfoView];
+            break;
+        case 3:
+            view = [self taxerTaxCheckInfoView];
+            break;
+        case 4:
+            view = [self taxerInvoiceCheckInfoView];
+            break;
+        case 5:
+            view = [self taxApplicationView];
+            break;
+        case 6:
+            view = [self declarePayInView];
+            break;
+            
+        default:
+            break;
+    }
+    [self selectContentView:view];
+}
+
+- (void)applicationSearchSubmit {
+    TaxApplicationView *taxApplicationView = self.contentView.subviews.firstObject;
+    if (taxApplicationView.beginTime.length < 1) {
+        [[YSAlertView alertWithTitle:nil message:@"请选择起始日期" buttonTitles:@"确定", nil] show];
+        return;
+    }
+    if (taxApplicationView.endTime.length < 1) {
+        [[YSAlertView alertWithTitle:nil message:@"请选择终止日期" buttonTitles:@"确定", nil] show];
+        return;
+    }
+    YSWebController *webVc = [[YSWebController alloc] init];
+    webVc.urlStr = [NSString stringWithFormat:@"%@?taxpayer_code=%@&belong_begin=%@&belong_end=%@&tax_status=%@", TAXSEARCH_APPLYFOR_URL, TAXPAYER_CODE, taxApplicationView.beginTime, taxApplicationView.endTime, taxApplicationView.taxType];
+    [self.navigationController pushViewController:webVc animated:YES];
+}
+- (void)declarePaySearchSubmit {
+    TaxDeclarePayInView *declarePayInView = self.contentView.subviews.firstObject;
+    if (declarePayInView.taxType.length < 1) {
+        [[YSAlertView alertWithTitle:nil message:@"请选择税种" buttonTitles:@"确定", nil] show];
+        return;
+    }
+    if (declarePayInView.beginTime.length < 1) {
+        [[YSAlertView alertWithTitle:nil message:@"请选择起始日期" buttonTitles:@"确定", nil] show];
+        return;
+    }
+    if (declarePayInView.endTime.length < 1) {
+        [[YSAlertView alertWithTitle:nil message:@"请选择终止日期" buttonTitles:@"确定", nil] show];
+        return;
+    }
+    NSDictionary *dict = @{@"taxpayer_code":TAXPAYER_CODE, @"tax_type" : declarePayInView.taxType, @"belong_begin" : declarePayInView.beginTime, @"belong_end" : declarePayInView.endTime};
+    [RequestBase requestWith:APITypeDeclarePay Param:@{@"jsonParam" : [dict JSONParamString]} Complete:^(YSResponseStatus status, id object) {
+        if (status == 0) {
+            TaxSearchResultController *vc = [[TaxSearchResultController alloc] init];
+            vc.dataDict = object[@"content"];
+            [self.navigationController pushViewController:vc animated:YES];
+        }
+    } ShowOnView:self.view];
+
+}
+
+#pragma mark - notification observer action
+
+- (void)keyboardWillShow:(NSNotification *)sender {
+    if (!(self.tabBarController.selectedViewController == self.navigationController) || !(self.navigationController.topViewController == self)) {
+        NSLog(@"isnot first responder");
+        return;
+    }
+    NSValue *boundsValue = sender.userInfo[UIKeyboardFrameEndUserInfoKey];
+    CGRect bounds = boundsValue.CGRectValue;
+    [self.bannerView mas_updateConstraints:^(MASConstraintMaker *make) {
+        make.top.equalTo(self.view).offset(-CGRectGetHeight(bounds) + 50);
+    }];
+    
+    [UIView animateWithDuration:2.5 animations:^{
+        [self.view layoutIfNeeded];
+    }];
+}
+
+- (void)keyboardWillHide:(NSNotification *)sender {
+    if (!(self.tabBarController.selectedViewController == self.navigationController) || !(self.navigationController.topViewController == self)) {
+        NSLog(@"isnot first responder");
+        return;
+    }
+    [self.bannerView mas_updateConstraints:^(MASConstraintMaker *make) {
+        make.top.equalTo(self.view);
+    }];
+    
+    [UIView animateWithDuration:0.25 animations:^{
+        [self.view layoutIfNeeded];
+    }];
+}
+
+@end
